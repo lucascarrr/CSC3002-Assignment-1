@@ -1,20 +1,36 @@
-from socket import*
-import User
+from http import client
+from socket import *
+from User import *
 
-serverName='127.0.0.1'
-serverPort=12000
+server_ip = '127.0.0.1'
+server_port = 12000
 serverSocket=socket(AF_INET, SOCK_DGRAM)
-serverSocket.bind((serverName, serverPort))
+serverSocket.bind((server_ip, server_port))
 
 user_database = []
 
-
 print("Server Running")
 
-message,clientAddress=serverSocket.recvfrom(2048)
+message,client_address = serverSocket.recvfrom(2048)
+
+x = User(str(client_address[0]), str(client_address[1]), message)
+user_database.append(x)
+
+user_database[0].printDetails()
+
+# outputname = x.name
+# output_ip = x.ip_address
+# output_port = x.port_no
+
+# print (outputname.decode())
+# print (output_ip)
+# print (output_port)
 
 
-serverSocket.sendto("Please enter your name: ".encode('utf-8'), (clientAddress))
 
-message,clientAddress=serverSocket.recvfrom(2048)
-print (message.decode())
+#print (x.name.decode() + " " + x.ip_address.decode())
+
+# print (message.decode())
+# print (str(client_address[0]))
+
+
