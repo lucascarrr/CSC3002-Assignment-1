@@ -1,8 +1,11 @@
-
 class User:
+    
     def __init__(self, ip_address, port_no, name):
         self.ip_address = ip_address
         self.port_no = port_no
         self.name = name
 
-    
+    def printDetails(self):
+        print (self.name.decode(), end=" from ")
+        print (self.ip_address, end=":")
+        print (self.port_no)
