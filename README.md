@@ -9,6 +9,6 @@
 
 ***To Run***
 
-> open terminal and cd into folder directory 
-> run the 'server.py' file
-> open another terminal and run 'main.py'
+- open terminal and cd into folder directory 
+- run the 'server.py' file
+- open another terminal and run 'main.py'
