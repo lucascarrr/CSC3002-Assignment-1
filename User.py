@@ -6,6 +6,9 @@ class User:
         self.name = name
 
     def printDetails(self):
-        print (self.name.decode(), end=" from ")
+        print (self.name, end=" from ")
         print (self.ip_address, end=":")
         print (self.port_no)
+    
+    def get_address(self):
+        return (self.ip_address, self.port_no)
