@@ -5,8 +5,7 @@ import time
 serverPort=12000
 serverSocket=socket(AF_INET, SOCK_DGRAM)
 
-a=serverSocket.bind(('', serverPort))
-
+serverSocket.bind(("", serverPort))
 clients=[]
 
 print("The server is ready to receive")
@@ -21,7 +20,7 @@ while not end:
         clients.append(clientAddress)
     for client in clients:
         if client!=clientAddress:
-               serverSocket.sendto(data, clientAddress)
-    print (time.ctime(time.time()) + str(clientAddress) + " : " + str(data))
+               serverSocket.sendto(data, client)
+    print (time.ctime(time.time()) + str(clientAddress) + " : " + str(data.decode()))
     
 serverSocket.close() 

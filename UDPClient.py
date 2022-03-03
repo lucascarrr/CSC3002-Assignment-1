@@ -13,20 +13,18 @@ def receiving (name, socket):
     while not quit:
         while True:   
             data, address= socket.recvfrom(2048)
-            print (str(data))
-
+            print (data.decode())
 
 for i in range(5):
     threading.Thread(target=receiving, args=("RecvThread", clientSocket)).start()
 
-name=input("Name: ")
-message=input(name + ": ")
+name= input("Name: ")
+message=''
 
 while message != 'Quit':
+    message=input()
     if message != '':
-        clientSocket.sendto(message.encode(), server)
-    message= input(name + ": ")
-    
+        clientSocket.sendto((name+ ": " + message).encode(), server)    
     time.sleep(0.1)
     
 quit=True
