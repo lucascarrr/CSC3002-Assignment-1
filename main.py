@@ -1,7 +1,6 @@
 import threading
 from socket import *
    
-received=False
 def send_message(message):      #send message to the server
     client_socket.sendto(message.encode('utf-8'), (server_ip, server_port))
 
@@ -11,12 +10,9 @@ def send_messages():
 
 def recieve_messages(client_socket):
     while True:
-        try:
-            message, server_address = client_socket.recvfrom(2048)
-            received=True
-            print(message.decode())
-        except:
-            print ("Error receiving message")
+        message, server_address = client_socket.recvfrom(2048)
+        print(message.decode())
+
 
 if __name__ == '__main__':
     #Server details
