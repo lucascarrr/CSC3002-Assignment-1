@@ -54,13 +54,15 @@ if __name__ == '__main__':
     serverSocket=socket(AF_INET, SOCK_DGRAM)
     serverSocket.bind((server_ip, server_port))
     print("Server Running")
-
+    
     while True:
-        message,client_address = serverSocket.recvfrom(2048)
-        process_full_message(message, client_address, user_database)
-        
-        
-        
+        try:
+            message,client_address = serverSocket.recvfrom(2048)
+            received=True
+            process_full_message(message, client_address, user_database)
+        except:
+            print ("Error receiving message")       
+
         # print (full_data)
         # decoded_message = decode_message(message)
         # message_type = decoded_message[0]
