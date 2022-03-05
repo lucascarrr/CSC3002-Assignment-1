@@ -1,7 +1,9 @@
+import hashlib
 from http import client
 from posixpath import split
 from socket import *
 from User import *
+#header = [0=hashed message, 1=message_time, 2=targets, 3=message_type]
 
 def print_all_users():
     print ("Current users: ")
@@ -11,38 +13,51 @@ def print_all_users():
 
 def process_full_message(message, details, user_list):
     decoded_message = decode_message(message)
-    message_type = decoded_message[0]
-    message_content = decoded_message[1]
-    manage_type(decoded_message, details, user_list)
 
+    #clean this up maybe
+    header = str(decoded_message[0])
+    header = header.replace("'", "")
+    header = header.replace(" ", "")
+    header = header[1:(len(header)-1)]
+    header = header.split(",")
+    message_content = str(decoded_message[1])
+    
+    #assigning variables
+    message_type = header[3]
+    #print (header[3]) - shows type of request (for debugging)
+    hashed_confirmation = check_hashing(header[0][:(len(header[0])-2)], message_content)
+    targets = header[2]
+    time = header[1]
 
+    #handling message types
+    if (message_type == "JOIN"):
+        create_user(message_content, details, user_list)
+
+    elif (message_type == "CHAT"):
+        for user in user_list:
+            if (user.name in targets):
+                 serverSocket.sendto(bytes(message_content.encode('utf-8')), (user.ip_address, int(user.port_no)))
+
+    elif (message_type == "BROADCAST"):
+        for user in user_list:
+            serverSocket.sendto(bytes(message_content.encode('utf-8')), (user.ip_address, int(user.port_no)))
+
+#seperates the message content from the header
 def decode_message(message):
     message = message.decode()
-    split_message = str(message).split("||")
+    split_message = str(message).split(" <-HEADER||MESSAGE-> ")
     return split_message
 
-def manage_type(decoded_message, details, user_list):
-    if (decoded_message[0] == "login_request"):
-        create_user(decoded_message[1], details, user_list)
-    elif (decoded_message[0] == "direct_message"):
-        direct_message(decoded_message[1], user_list)
+#confirms that correct message was delivered to the server (check again on receiving message*)
+def check_hashing(hashed_string, unhashed_string):
+    x =  hashlib.sha256(unhashed_string.encode('utf-8')).hexdigest()  
+    return (hashed_string == x)
 
-def direct_message(message, user_list):
-    split_to_target = message.split("|@")
-    target_name = split_to_target[1]
-    if (target_name == ""):
-        for user in user_list:
-            serverSocket.sendto(bytes(split_to_target[0].encode('utf-8')), (user.ip_address, int(user.port_no)))
-    else:
-        for user in user_list:
-            if (user.name in target_name):
-                serverSocket.sendto(bytes(split_to_target[0].encode('utf-8')), (user.ip_address, int(user.port_no)))
-            
-
+#creates a user and adds to the database
 def create_user(name, details, user_list):
     temp_user = User(str(details[0]), str(details[1]), name)
     user_list.append(temp_user)
-    print ("user added")
+    print (temp_user.name + " user added")
 
 if __name__ == '__main__':
     user_database = []
@@ -58,31 +73,4 @@ if __name__ == '__main__':
     while True:
         message,client_address = serverSocket.recvfrom(2048)
         process_full_message(message, client_address, user_database)
-        
-        
-        
-        # print (full_data)
-        # decoded_message = decode_message(message)
-        # message_type = decoded_message[0]
-        # message_content = decoded_message[1]
-
-
-        
-
-        # x = User(str(client_address[0]), str(client_address[1]), message)
-        # user_database.append(x)
-
-        # user_database[connections_counter].printDetails()
-        # connections_counter += 1
-
-
-
-
-
-    # user_database[connections_counter].printDetails()
-    # connections_counter += 1
-    # print_all_users()
-
-
-
 
