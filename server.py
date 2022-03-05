@@ -13,6 +13,8 @@ def process_full_message(message, details, user_list):
     decoded_message = decode_message(message)
     message_type = decoded_message[0]
     message_content = decoded_message[1]
+    message_number = decoded_message[2]
+    serverSocket.sendto(message, details)
     manage_type(decoded_message, details, user_list)
 
 
