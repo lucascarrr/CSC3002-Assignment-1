@@ -1,6 +1,6 @@
 import threading
 from socket import *
-    
+   
 def send_message(message):      #send message to the server
     client_socket.sendto(message.encode('utf-8'), (server_ip, server_port))
 
@@ -46,8 +46,8 @@ if __name__ == '__main__':
             logged_in = True
         else:
             input_message = input("Direct Message: ")
-            target = input("Target: ")
-            input_message = 'direct_message||' + input_message + "|@" + target             
+            target = input("Target: ")                                                      #if you want to send to everyone, leave blank, for james type 'james, for james and tom type 'james tom'
+            input_message = 'direct_message||' + input_message + "|@" + target                      
 
         if input_message != "":
             client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
