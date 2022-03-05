@@ -15,6 +15,7 @@ def recieve_messages(client_socket):
     while True:
         message, server_address = client_socket.recvfrom(2048)
         print(message.decode())
+        print ("________________________________________")
 
 #processes message (adds a header and other information)
 def message_processing(raw_message, logged_in):
@@ -57,7 +58,6 @@ def message_processing(raw_message, logged_in):
 #creates a header, given ceratain information
 def create_message_header(message, targets, type):
     hashed_message = hashlib.sha256(message.encode('utf-8')).hexdigest()           #hashes the message content only
-    print (hashed_message)
     message_time = datetime.now()
     message_time = message_time.strftime("%H:%M:%S")
     targets = targets
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     inbox = []          
 
     logged_in = False
-    
+
     for i in range(1):
         rec = threading.Thread(target=recieve_messages, args=(client_socket,))
         rec.start()
