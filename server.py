@@ -30,12 +30,14 @@ def manage_type(decoded_message, details, user_list):
 def direct_message(message, user_list):
     split_to_target = message.split("|@")
     target_name = split_to_target[1]
-    for user in user_list:
-        if (target_name == user.name):
+    if (target_name == ""):
+        for user in user_list:
             serverSocket.sendto(bytes(split_to_target[0].encode('utf-8')), (user.ip_address, int(user.port_no)))
-            return
-
-
+    else:
+        for user in user_list:
+            if (user.name in target_name):
+                serverSocket.sendto(bytes(split_to_target[0].encode('utf-8')), (user.ip_address, int(user.port_no)))
+            
 
 def create_user(name, details, user_list):
     temp_user = User(str(details[0]), str(details[1]), name)
