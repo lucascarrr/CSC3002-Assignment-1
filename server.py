@@ -25,9 +25,11 @@ def process_full_message(message, details, user_list):
     #assigning variables
     message_type = header[3]
     #print (header[3]) - shows type of request (for debugging)
-    hashed_confirmation = check_hashing(header[0][:(len(header[0])-2)], message_content)
+    hashed_confirmation = check_hashing(header[0][:(len(header[0]))], message_content)
     targets = header[2]
     time = header[1]
+    sender = header[4]
+    print (sender)
 
     #handling message types
     if (message_type == "JOIN"):
@@ -36,11 +38,11 @@ def process_full_message(message, details, user_list):
     elif (message_type == "CHAT"):
         for user in user_list:
             if (user.name in targets):
-                 serverSocket.sendto(bytes(message_content.encode('utf-8')), (user.ip_address, int(user.port_no)))
+                 serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
 
     elif (message_type == "BROADCAST"):
         for user in user_list:
-            serverSocket.sendto(bytes(message_content.encode('utf-8')), (user.ip_address, int(user.port_no)))
+             serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
 
 #seperates the message content from the header
 def decode_message(message):
@@ -72,5 +74,6 @@ if __name__ == '__main__':
 
     while True:
         message,client_address = serverSocket.recvfrom(2048)
+        print (message)
         process_full_message(message, client_address, user_database)
 
