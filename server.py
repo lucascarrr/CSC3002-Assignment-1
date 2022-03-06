@@ -1,5 +1,6 @@
 import hashlib
 from http import client
+from ipaddress import ip_address
 from posixpath import split
 from socket import *
 from User import *
@@ -29,20 +30,41 @@ def process_full_message(message, details, user_list):
     targets = header[2]
     time = header[1]
     sender = header[4]
-    print (sender)
-
+    print (header[4])
+    
     #handling message types
     if (message_type == "JOIN"):
         create_user(message_content, details, user_list)
-
+        temp = sender + " has joined the server"
+        out_message = create_out_message(temp, "[server]")
+        for user in user_list:
+            serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
+            print (out_message)
+            
+        #insert outmessage here
     elif (message_type == "CHAT"):
+        out_message = create_out_message(message_content, sender)
         for user in user_list:
             if (user.name in targets):
-                 serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
+                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
+                #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
 
     elif (message_type == "BROADCAST"):
+        out_message = create_out_message(message_content, (sender + "( broadcast )"))
         for user in user_list:
-             serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
+            if (user.name != sender):
+            #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
+                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
+
+def create_out_message(message, sender):
+    message_header = create_out_header(sender, message)
+    created_message = str(message_header) + " <-HEADER||MESSAGE-> " + message
+    return (created_message)
+
+def create_out_header(sender, content):
+    hashed_message = hashlib.sha256(content.encode('utf-8')).hexdigest()  
+    sender = sender
+    return [hashed_message, sender]
 
 #seperates the message content from the header
 def decode_message(message):

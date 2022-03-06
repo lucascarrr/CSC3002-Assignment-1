@@ -14,6 +14,7 @@ font_bold = "Helvertica 14 bold"
 class gui:
     is_logged_in = False
     username = ""
+   
 
     def __init__(self):
         self.window = Tk()
@@ -51,11 +52,13 @@ class gui:
                                     font=font_bold, pady=10)
         head_label.place(relwidth=1)
 
+        #add label
+        self.send_label = Label (self.window, text="Press [enter]\n to send", width=30, height=2, highlightthickness = 0, borderwidth=0, relief="raised", bg="#13315C", fg="#EEF4ED", font=font)
+        self.send_label.place(relheight=0.825, relwidth=0.2, rely=0.9, relx=0.8)
+
         #text add widget
-        self.text_widget = Text(self.window, width=30, height=2, highlightthickness = 0, borderwidth=0, relief="raised",
-                                    bg="#8DA9C4", fg="#EEF4ED", font=font,
-                                    padx=5, pady=5)
-        self.text_widget.place(relheight=0.825, relwidth=1, rely=0.9)
+        self.text_widget = Text(self.window, width=30, height=2, highlightthickness = 0, borderwidth=0, relief="raised", bg="#8DA9C4", fg="#EEF4ED", font=font, padx=5, pady=5)
+        self.text_widget.place(relheight=0.825, relwidth=0.8, rely=0.9)
         self.text_widget.configure(cursor="xterm")
         self.text_widget.focus()
         self.text_widget.bind("<Return>", self.on_enter_press)
@@ -78,28 +81,46 @@ class gui:
 
     def on_enter_press(self, event):
         message = self.text_widget.get("1.0", 'end-1c')
-        send_message(message, self.is_logged_in)
-        self.text_widget.delete("1.0", END)
-        return "break"
+        while ("\n" not in message and message != ""):
+            send_message(message, self.is_logged_in)
+            self.text_widget.delete("1.0", END)
+            return "break"
   
 def send_message(message, logged_in):
-    sender = gui.username
-    input_message = message_processing(message, logged_in, sender)
+    if (gui.username == ""):
+        sender = message
+    else:
+        sender = gui.username
+    if ("@" in message):
+        a = message.split(" ")
+        b = len(a[0])
+        gui.print_to_Screen("You: " + message[b:])
+    elif (gui.is_logged_in):
+        gui.print_to_Screen("You (broadcast): " + message)
+
+    input_message = message_processing_out(message, logged_in, sender)
     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
 
 def recieve_messages(client_socket):
     while True:
         message, server_address = client_socket.recvfrom(2048)
-        gui.print_to_Screen(message.decode())
+        x = message_processing_in(message)
+        gui.print_to_Screen(x)
         #print(message.decode())
 
 def log_in(username, login_status):
-    sender = username
-    input_message = message_processing(username, login_status, sender)
+    sender = gui.username
+    input_message = message_processing_out(gui.username, login_status, sender)
     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
 
+#seperates the message content from the header
+def decode_message(message):
+    message = message.decode()
+    split_message = str(message).split(" <-HEADER||MESSAGE-> ")
+    return split_message
+
 #processes message (adds a header and other information)
-def message_processing(raw_message, logged_in, sender):
+def message_processing_out(raw_message, logged_in, sender):
     target_string = ""
     message_type = ""
     message_content = ""
@@ -138,6 +159,27 @@ def message_processing(raw_message, logged_in, sender):
     created_message = (str(message_header) + " <-HEADER||MESSAGE-> " + message_content)
     return created_message
 
+def message_processing_in(raw_message):
+    decoded_message = decode_message(raw_message)
+    
+    header = str(decoded_message[0])
+    header = header.replace("'", "")
+    header = header.replace(" ", "")
+    header = header[1:(len(header)-1)]
+    header = header.split(",")
+
+    message_content = str(decoded_message[1])
+    hashed_message = header[0]
+    sender = header[1]
+
+    if (check_hashing(hashed_message, message_content)):
+        return sender + ": " + message_content
+
+
+def check_hashing(hashed_string, unhashed_string):
+    x =  hashlib.sha256(unhashed_string.encode('utf-8')).hexdigest()  
+    return (hashed_string == x)
+
 #creates a header, given ceratain information
 def create_message_header(message, targets, type, sender):
     hashed_message = hashlib.sha256(message.encode('utf-8')).hexdigest()           #hashes the message content only
@@ -158,10 +200,11 @@ if __name__=="__main__":
 
     #Message input/output handling
     input_message = ""
+    logged_in = False
     sent = []
     outbox = []
     inbox = []       
-    logged_in = False
+
 
 
     # input_message = message_processing("lucas", logged_in, sender)
