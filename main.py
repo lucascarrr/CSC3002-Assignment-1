@@ -15,7 +15,6 @@ def recieve_messages(client_socket):
     while True:
         message, server_address = client_socket.recvfrom(2048)
         print(message.decode())
-        print ("________________________________________")
 
 #processes message (adds a header and other information)
 def message_processing(raw_message, logged_in):
