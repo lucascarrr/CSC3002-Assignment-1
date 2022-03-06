@@ -1,6 +1,8 @@
+import hashlib
+from posixpath import split
 import threading
 from socket import *
-from gui_test import GUI
+from datetime import datetime
    
 def send_message(message):      #send message to the server
     client_socket.sendto(message.encode('utf-8'), (server_ip, server_port))
@@ -14,49 +16,101 @@ def recieve_messages(client_socket):
         message, server_address = client_socket.recvfrom(2048)
         print(message.decode())
 
+#processes message (adds a header and other information)
+def message_processing(raw_message, logged_in, sender):
+    target_string = ""
+    message_type = ""
+    message_content = ""
+
+    split_on_space = raw_message.split(" ")
+    message_start_position = 0
+   
+    for current_word in split_on_space:
+        if (current_word[0] != "@"):
+            message_start_position = split_on_space.index(current_word)
+            break
+
+    content_list = split_on_space[message_start_position:]
+    for x in content_list:
+        message_content += x
+        message_content += " "
+
+    target_list = split_on_space[:message_start_position]
+    for x in target_list:
+        target_string += x[1:]
+        target_string += " "
+
+    if not logged_in:
+        message_type = message_type_list[2]
+
+    elif (message_start_position == 0):
+        message_type = message_type_list[1]
+
+    elif (message_start_position > 0):
+        message_type = message_type_list[0]
+        
+    
+    message_header = create_message_header(message_content, target_string, message_type, sender)
+    created_message = (str(message_header) + " <-HEADER||MESSAGE-> " + message_content)
+    return created_message
+
+#creates a header, given ceratain information
+def create_message_header(message, targets, type, sender):
+    hashed_message = hashlib.sha256(message.encode('utf-8')).hexdigest()           #hashes the message content only
+    message_time = datetime.now()
+    message_time = message_time.strftime("%H:%M:%S")
+    targets = targets
+    message_type = type
+    sender = sender
+    return [hashed_message, message_time, targets, message_type, sender]
+
+def print_file():
+    hist_file = open('message_history.txt')
+    lines = hist_file.readlines()
+    for line in lines:
+        print(line)
+
 if __name__ == '__main__':
-    g = GUI()
     #Server details
     server_ip = '127.0.0.1'            
     server_port = 12000
     client_socket=socket(AF_INET, SOCK_DGRAM)
+    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE"]
 
     #Message input/output handling
     input_message = ""
     sent = []
     outbox = []
-    inbox = []
-    
-    #Starting send and receive threads
-    # start_receiving = Thread(target=recieve_messages, args=())
-    # start_sending = Thread(target=send_messages, args=())
-    # start_receiving.start()
-    # start_sending.start()
+    inbox = []          
 
     logged_in = False
+    sender = ""
+
+    
 
     for i in range(1):
         rec = threading.Thread(target=recieve_messages, args=(client_socket,))
         rec.start()
 
-    while True:
-        
+    while True:                            
         if not logged_in:
-            g.login_window(g)
-            #name = input("Enter your username: \n")
-            name = g.entryName
-            input_message = 'login_request||' + name
+            name = input("Enter your username: \n")
+            sender = name
+            input_message = message_processing(name, logged_in, sender)
             logged_in = True
+            decision_msg_hist = input("Would you like to see message history? [y/n]")
+            print("Type a message and press enter:")
+            if decision_msg_hist == "y":
+                print_file()
         else:
-            #hmmm translate this to gui_test?? thread for recieve and thread for send perhaps 
-            input_message = input("Direct Message: ")
-            target = input("Target: ")                                                      #if you want to send to everyone, leave blank, for james type 'james, for james and tom type 'james tom'
-            input_message = 'direct_message||' + input_message + "|@" + target                      
-
+            message = input()
+            input_message = message_processing(message, logged_in, sender)
+            message_history_file = open('message_history.txt', 'a')
+            message_history_file.write(name+':'+message+'\n')  
+            
         if input_message != "":
-            client_socket.sendto(g.input_message.encode('utf-8'), (server_ip, server_port))
-
-
+            client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+       
     
 
 
