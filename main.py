@@ -17,7 +17,7 @@ def recieve_messages(client_socket):
         print(message.decode())
 
 #processes message (adds a header and other information)
-def message_processing(raw_message, logged_in):
+def message_processing(raw_message, logged_in, sender):
     target_string = ""
     message_type = ""
     message_content = ""
@@ -50,18 +50,19 @@ def message_processing(raw_message, logged_in):
         message_type = message_type_list[0]
         
     
-    message_header = create_message_header(message_content, target_string, message_type)
+    message_header = create_message_header(message_content, target_string, message_type, sender)
     created_message = (str(message_header) + " <-HEADER||MESSAGE-> " + message_content)
     return created_message
 
 #creates a header, given ceratain information
-def create_message_header(message, targets, type):
+def create_message_header(message, targets, type, sender):
     hashed_message = hashlib.sha256(message.encode('utf-8')).hexdigest()           #hashes the message content only
     message_time = datetime.now()
     message_time = message_time.strftime("%H:%M:%S")
     targets = targets
     message_type = type
-    return [hashed_message, message_time, targets, message_type]
+    sender = sender
+    return [hashed_message, message_time, targets, message_type, sender]
 
 
 if __name__ == '__main__':
@@ -78,6 +79,7 @@ if __name__ == '__main__':
     inbox = []          
 
     logged_in = False
+    sender = ""
 
     for i in range(1):
         rec = threading.Thread(target=recieve_messages, args=(client_socket,))
@@ -86,17 +88,17 @@ if __name__ == '__main__':
     while True:                            
         if not logged_in:
             name = input("Enter your username: \n")
-            input_message = message_processing(name, logged_in)
+            sender = name
+            input_message = message_processing(name, logged_in, sender)
             logged_in = True
         
         else:
-            x = input()
-            input_message = message_processing(x, logged_in=True)
+            message = input()
+            input_message = message_processing(message, logged_in, sender)
        
         if input_message != "":
             client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
-
-
+       
     
 
 
