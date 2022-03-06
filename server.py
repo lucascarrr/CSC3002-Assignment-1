@@ -39,7 +39,6 @@ def process_full_message(message, details, user_list):
         out_message = create_out_message(temp, "[server]")
         for user in user_list:
             serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
-            print (out_message)
             
         #insert outmessage here
     elif (message_type == "CHAT"):
