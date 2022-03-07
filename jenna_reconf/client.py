@@ -1,0 +1,152 @@
+import hashlib
+from posixpath import split
+import threading
+from socket import *
+from datetime import datetime
+from venv import create
+from server import *
+
+def send_message(message):      #send message to the server
+    client_socket.sendto(message.encode('utf-8'), (server_ip, server_port))
+
+def send_messages():
+    if (len(outbox) != 0 ):
+        pass
+
+def recieve_messages(client_socket):
+    while True:
+        message, server_address = client_socket.recvfrom(2048)
+        #print(message.decode())
+
+def create_message(raw_message, sender, type):
+    message_time = datetime.now()
+    message_time = message_time.strftime("%H:%M:%S")
+    raw_message_array = raw_message.split(" ")
+    reciever = raw_message_array[0]
+    raw_message_array.remove(reciever)
+    message = " ".join(raw_message_array)
+    hashed_message = hashlib.sha256(message.encode('utf-8')).hexdigest()  
+    return type + " " + message_time + " " + sender + " " + hashed_message + " " + reciever 
+
+def get_server_response():
+    try:
+        message = client_socket.recvfrom(2048).decode()
+        message_dict = process(message)
+        return message_dict.get('type')
+    except:
+        return "TIMEOUT"
+#processes message (adds a header and other information)
+# def message_processing(raw_message, logged_in, sender):
+#     target_string = ""
+#     message_type = ""
+#     message_content = ""
+
+#     split_on_space = raw_message.split(" ")
+#     message_start_position = 0
+   
+#     for current_word in split_on_space:
+#         if (current_word[0] != "@"):
+#             message_start_position = split_on_space.index(current_word)
+#             break
+
+#     content_list = split_on_space[message_start_position:]
+#     for x in content_list:
+#         message_content += x
+#         message_content += " "
+
+#     target_list = split_on_space[:message_start_position]
+#     for x in target_list:
+#         target_string += x[1:]
+#         target_string += " "
+
+#     if not logged_in:
+#         message_type = message_type_list[2]
+
+#     elif (message_start_position == 0):
+#         message_type = message_type_list[1]
+
+#     elif (message_start_position > 0):
+#         message_type = message_type_list[0]
+        
+    
+#     message_header = create_message_header(message_content, target_string, message_type, sender)
+#     created_message = (str(message_header) + " <-HEADER||MESSAGE-> " + message_content)
+#     return created_message
+
+# #creates a header, given ceratain information
+# def create_message_header(message, type, sender):
+#     hashed_message = hashlib.sha256(message.encode('utf-8')).hexdigest()           #hashes the message content only
+#     message_time = datetime.now()
+#     message_time = message_time.strftime("%H:%M:%S")
+#     targets = targets
+#     message_type = type
+#     sender = sender
+#     return [hashed_message, message_time, targets, message_type, sender]
+
+def print_file():
+    hist_file = open('message_history.txt')
+    lines = hist_file.readlines()
+    for line in lines:
+        print(line)
+
+if __name__ == '__main__':
+    #Server details
+    server_ip = '127.0.0.1'            
+    server_port = 12000
+    client_socket=socket(AF_INET, SOCK_DGRAM)
+    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "ACK"] #add one for broadcasring messafe to screen? like system pop ups in red, or textbox i dno
+
+
+    #Message input/output handling
+    input_message = ""
+    sent = []
+    outbox = []
+    inbox = []          
+
+    logged_in = False
+    sender = ""
+
+    for i in range(1):
+        rec = threading.Thread(target=recieve_messages, args=(client_socket,))
+        rec.start()
+
+# if server response = ack DO WHILE TRUE LOOP
+    while True:    
+        ack_message = create_message("Acknowledge me, server", "Server", "ACK")
+        client_socket.sendto(ack_message.encode('utf-8'), (server_ip, server_port))
+        #response = get_server_response()
+        response = "ACK"
+        #print(response)
+        if response == "ACK":
+            if not logged_in:
+                name = input("Enter your username: \n")
+                sender = name
+                input_message = create_message(name, sender, "JOIN")
+                logged_in = True
+                #textbox pop up
+                decision_msg_hist = input("Would you like to see message history? [y/n]")
+                print("Type a message and press enter:")
+                if decision_msg_hist == "y":
+                    print_file()
+            else:
+                message = input()
+                input_message =  create_message(message, "CHAT", sender)
+                message_history_file = open('message_history.txt', 'a')
+                message_history_file.write(name+':'+message+'\n')  
+                
+            if input_message != "":
+                client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+            else:
+                print("You forgot to type a message")
+                #pop up window gui
+        else:
+            print("Server not responsive.")
+            #pop up window
+       
+    
+
+
+    
+    
+
+
