@@ -15,7 +15,6 @@ class gui:
     is_logged_in = False
     username = ""
    
-
     def __init__(self):
         self.window = Tk()
         self.setup_main_window()
@@ -73,11 +72,11 @@ class gui:
         self.message_view.insert(END, message)
         self.message_view.insert(END, "\n")
 
-    def login_on_enter(self, event):
-        login_username = self.login_box.get("1.0", 'end-1c')
-        log_in(login_username, self.is_logged_in)
-        self.login_box.delete("1.0", END)
-        return "break"
+    # def login_on_enter(self, event):
+    #     login_username = self.login_box.get("1.0", 'end-1c')
+    #     log_in(login_username, self.is_logged_in)
+    #     self.login_box.delete("1.0", END)
+    #     return "break"
 
     def on_enter_press(self, event):
         message = self.text_widget.get("1.0", 'end-1c')
@@ -105,13 +104,16 @@ def recieve_messages(client_socket):
     while True:
         message, server_address = client_socket.recvfrom(2048)
         x = message_processing_in(message)
-        gui.print_to_Screen(x)
+        try: 
+            gui.print_to_Screen(x)
+        except:
+            continue
         #print(message.decode())
 
-def log_in(username, login_status):
-    sender = gui.username
-    input_message = message_processing_out(gui.username, login_status, sender)
-    client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+# def log_in(username, login_status):
+#     sender = gui.username
+#     input_message = message_processing_out(gui.username, login_status, sender)
+#     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
 
 #seperates the message content from the header
 def decode_message(message):
@@ -146,7 +148,7 @@ def message_processing_out(raw_message, logged_in, sender):
     if not logged_in:
         message_type = message_type_list[2]
         gui.username = message_content
-        gui.is_logged_in = True
+        #gui.is_logged_in = True
 
     elif (message_start_position == 0):
         message_type = message_type_list[1]
@@ -154,7 +156,6 @@ def message_processing_out(raw_message, logged_in, sender):
     elif (message_start_position > 0):
         message_type = message_type_list[0]
         
-    
     message_header = create_message_header(message_content, target_string, message_type, sender)
     created_message = (str(message_header) + " <-HEADER||MESSAGE-> " + message_content)
     return created_message
@@ -171,6 +172,13 @@ def message_processing_in(raw_message):
     message_content = str(decoded_message[1])
     hashed_message = header[0]
     sender = header[1]
+    
+    if (message_type_list[4] in header):
+        gui.is_logged_in = True
+        print ("done")
+    elif (message_type_list[5] in header):
+        gui.username=""
+        gui.is_logged_in = False
 
     if (check_hashing(hashed_message, message_content)):
         return sender + ": " + message_content
@@ -196,7 +204,7 @@ if __name__=="__main__":
     server_port = 12000
     client_socket=socket(AF_INET, SOCK_DGRAM)
  
-    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE"]
+    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "CONFIRMATION", "REJECTION"]
 
     #Message input/output handling
     input_message = ""
