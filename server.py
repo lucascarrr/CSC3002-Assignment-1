@@ -1,6 +1,5 @@
 import hashlib
 from http import client
-from ipaddress import ip_address
 from posixpath import split
 from socket import *
 from User import *
@@ -12,7 +11,7 @@ def print_all_users():
         users.printDetails()
     print()
 
-def process_full_message(message, details, user_list):
+def process_full_message(message, details, user_list, user_names):
     decoded_message = decode_message(message)
 
     #clean this up maybe
@@ -30,45 +29,20 @@ def process_full_message(message, details, user_list):
     targets = header[2]
     time = header[1]
     sender = header[4]
-    # print (header[4])
-    
+    print (sender)
+
     #handling message types
     if (message_type == "JOIN"):
-        user_created = create_user(message_content, details, user_list)
+        create_user(message_content, details, user_list, user_names)
 
-        if not user_created:
-            out_message = create_out_message("Username in use. Try again", "[Server]", "REJECTION")
-            serverSocket.sendto(bytes(out_message.encode('utf-8')), (details[0], int(details[1])))
-        else:
-            temp = sender + " has joined the server"
-            out_message = create_out_message(temp, "[server]", "CONFIRMATION")
-            for user in user_list:
-                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
-            
-        #insert outmessage here
     elif (message_type == "CHAT"):
-        out_message = create_out_message(message_content, sender, "CHAT")
         for user in user_list:
             if (user.name in targets):
-                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
-                #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
+                 serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
 
     elif (message_type == "BROADCAST"):
-        out_message = create_out_message(message_content, (sender + "( broadcast )"), "BROADCAST")
         for user in user_list:
-            if (user.name != sender):
-            #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
-                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
-
-def create_out_message(message, sender, type):
-    message_header = create_out_header(sender, message, type)
-    created_message = str(message_header) + " <-HEADER||MESSAGE-> " + message
-    return (created_message)
-
-def create_out_header(sender, content, type):
-    hashed_message = hashlib.sha256(content.encode('utf-8')).hexdigest()  
-    sender = sender
-    return [hashed_message, sender, type]
+             serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
 
 #seperates the message content from the header
 def decode_message(message):
@@ -82,24 +56,28 @@ def check_hashing(hashed_string, unhashed_string):
     return (hashed_string == x)
 
 #creates a user and adds to the database
-def create_user(name, details, user_list):
+def create_user(name, details, user_list, user_names):
     temp_user = User(str(details[0]), str(details[1]), name)
-    print(len(user_list))
-    if len(user_list) == 0:
-        user_list.append(temp_user)
-        return True
+    print (user_names)
+    if temp_user.name in user_names:
+     print("cat")
+     while temp_user.name in user_names:
+      serverSocket.sendto(bytes(("Username already taken, try another username").encode('utf-8')), (temp_user.ip_address, int(temp_user.port_no)))
+      message1, clientAddress= serverSocket.recvfrom(2048)
+      decoded_message=decode_message(message1)
+      temp_user.name=str(decoded_message[1])
+      print(temp_user.name)
+     user_names.append(temp_user.name)
+     user_list.append(temp_user)
     else:
-        for user in user_list:
-            if (temp_user.name == user.name):
-                return False
-  
-    user_list.append(temp_user)
-    print (temp_user.name + " user added")
-    return True
-
+     user_list.append(temp_user)
+     user_names.append(name)
+     print (temp_user.name + " user added")
+    
 
 if __name__ == '__main__':
     user_database = []
+    user_names_database=[]
     message_database = []
     connections_counter = 0 
 
@@ -112,5 +90,4 @@ if __name__ == '__main__':
     while True:
         message,client_address = serverSocket.recvfrom(2048)
         print (message)
-        process_full_message(message, client_address, user_database)
-
+        process_full_message(message, client_address, user_database, user_names_database)

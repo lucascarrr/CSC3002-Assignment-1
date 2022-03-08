@@ -3,7 +3,9 @@ import hashlib
 import threading
 from socket import *
 from datetime import datetime
+from turtle import end_fill
 from interface import *
+from account import *
 
 bg = "#EEF4ED"
 system_text = "#C1666B"
@@ -14,14 +16,16 @@ font_bold = "Helvertica 14 bold"
 class gui:
     is_logged_in = False
     username = ""
+    accounts = []
    
     def __init__(self):
         self.window = Tk()
-        self.setup_main_window()
+        self.setup_login_window()
         #self.setup_login_window()
     
     def run(self):
         self.window.mainloop()
+    
     
     def setup_login_window(self):
         self.window.title("Login")
@@ -37,10 +41,35 @@ class gui:
                                     padx=3, pady=5)
         self.login_box.place(relheight=0.3, relwidth=0.5, rely=0.35, relx=0.37)
         self.login_box.focus()
-        self.login_box.bind("<Return>", self.login_on_enter)
+        self.login_box.bind("<Return>", self.login_on_enter) #this self.login xyz calls func to save username and call password window
 
+    def setup_password_window(self):
+        head_label = Label(self.window, bg=bg, fg=system_text,
+                                    text="Passwords must start with a #",
+                                    font=font_bold, pady=10)
+        head_label.place(relwidth=1)
+        self.window.destroy()
+        self.window = Tk()
+        
+        self.window.title("Password")
+        self.window.resizable(width=False, height=False)
+        self.window.configure(width=300, height = 100, bg="#EEF4ED")
+        self.window.eval('tk::PlaceWindow . center')
+
+        #login field
+        login_label = Label(self.window, fg="#13315C", bg="#EEF4ED", text = "PASSWORD:", font=font)
+        login_label.place(relheight=0.4, relwidth=0.4, rely=0.3, relx=0)
+        self.login_box = Text(self.window, width=1, height= 1, highlightthickness = 0, borderwidth=0,
+                                    bg="#8DA9C4", fg="#0B2545", font=font,
+                                    padx=3, pady=5)
+        self.login_box.place(relheight=0.3, relwidth=0.5, rely=0.35, relx=0.37)
+        self.login_box.focus()
+        self.login_box.bind("<Return>", self.password_on_enter) #same func as login_enter except it is for password
 
     def setup_main_window(self):
+        self.window.destroy()
+        print('wassup')
+        self.window = Tk()
         self.window.title("Chatroom")
         self.window.resizable(width=False, height=False)
         self.window.configure(width=800, height=1200, bg=bg)
@@ -72,11 +101,17 @@ class gui:
         self.message_view.insert(END, message)
         self.message_view.insert(END, "\n")
 
-    # def login_on_enter(self, event):
-    #     login_username = self.login_box.get("1.0", 'end-1c')
-    #     log_in(login_username, self.is_logged_in)
-    #     self.login_box.delete("1.0", END)
-    #     return "break"
+    def login_on_enter(self, event):
+        login_username = self.login_box.get("1.0", 'end-1c')
+        log_in(login_username, self.is_logged_in)
+        self.login_box.delete("1.0", END)
+        self.setup_password_window()
+    
+    def password_on_enter(self, event):
+        password = self.login_box.get("1.0", 'end-1c')
+        save_password(self.username, password, self.is_logged_in)
+        self.login_box.delete("1.0", END)
+        self.setup_main_window() #this needs to set up main chat window however right now it doesn't and dont know why
 
     def on_enter_press(self, event):
         message = self.text_widget.get("1.0", 'end-1c')
@@ -84,8 +119,31 @@ class gui:
             send_message(message, self.is_logged_in)
             self.text_widget.delete("1.0", END)
             return "break"
+
+#def incorrect password - todo
+#def save users if server goes down if time ahhhh  
+    
+def create_account(username, password):
+    account = Account(username, password)
+    gui.accounts.append(account)
+
+def save_password(username, password, login_status):
+    sender = username
+    create_account(username, password)
+    print(gui.accounts[0].name)
+    
+    for i in range(len(gui.accounts)):
+        if gui.accounts[i].name == username:
+            if password == gui.accounts[i].password:
+                input_message = message_processing_out(password, login_status, sender, True)
+                client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+            # else:
+            #     self.popup_window= Toplevel()
+            #add code to make a pop up for incorrect password, may make a method
+                  
   
 def send_message(message, logged_in):
+
     if (gui.username == ""):
         sender = message
     else:
@@ -97,8 +155,10 @@ def send_message(message, logged_in):
     elif (gui.is_logged_in):
         gui.print_to_Screen("You (broadcast): " + message)
 
-    input_message = message_processing_out(message, logged_in, sender)
+    input_message = message_processing_out(message, logged_in, sender, False)
+    
     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+
 
 def recieve_messages(client_socket):
     while True:
@@ -110,10 +170,10 @@ def recieve_messages(client_socket):
             continue
         #print(message.decode())
 
-# def log_in(username, login_status):
-#     sender = gui.username
-#     input_message = message_processing_out(gui.username, login_status, sender)
-#     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+def log_in(username, login_status):
+    sender = username
+    input_message = message_processing_out(username, login_status, sender, False)
+    client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
 
 #seperates the message content from the header
 def decode_message(message):
@@ -122,7 +182,7 @@ def decode_message(message):
     return split_message
 
 #processes message (adds a header and other information)
-def message_processing_out(raw_message, logged_in, sender):
+def message_processing_out(raw_message, logged_in, sender, password):
     target_string = ""
     message_type = ""
     message_content = ""
@@ -134,7 +194,7 @@ def message_processing_out(raw_message, logged_in, sender):
         if (current_word[0] != "@"):
             message_start_position = split_on_space.index(current_word)
             break
-
+    
     content_list = split_on_space[message_start_position:]
     for x in content_list:
         message_content += x
@@ -148,17 +208,21 @@ def message_processing_out(raw_message, logged_in, sender):
     if not logged_in:
         message_type = message_type_list[2]
         gui.username = message_content
+        if password == True:
+            message_type = message_type_list[6]
         #gui.is_logged_in = True
 
     elif (message_start_position == 0):
         message_type = message_type_list[1]
-
+    
     elif (message_start_position > 0):
         message_type = message_type_list[0]
-        
+    
+    print(message_type)
     message_header = create_message_header(message_content, target_string, message_type, sender)
     created_message = (str(message_header) + " <-HEADER||MESSAGE-> " + message_content)
     return created_message
+
 
 def message_processing_in(raw_message):
     decoded_message = decode_message(raw_message)
@@ -203,8 +267,9 @@ if __name__=="__main__":
     server_ip = '127.0.0.1'            
     server_port = 12000
     client_socket=socket(AF_INET, SOCK_DGRAM)
+   
  
-    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "CONFIRMATION", "REJECTION"]
+    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "CONFIRMATION", "REJECTION", "PASSWORD"]
 
     #Message input/output handling
     input_message = ""
@@ -229,4 +294,4 @@ if __name__=="__main__":
 
     # message = input()
     # input_message = message_processing(message, logged_in, input_name)
-    # client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+    
