@@ -33,16 +33,19 @@ def process_full_message(message, details, user_list, user_names):
 
     #handling message types
     if (message_type == "JOIN"):
+        
         create_user(message_content, details, user_list, user_names)
 
     elif (message_type == "CHAT"):
+       
         for user in user_list:
             if (user.name in targets):
                  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
 
     elif (message_type == "BROADCAST"):
+      
         for user in user_list:
-             serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
+            serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
 
 #seperates the message content from the header
 def decode_message(message):
@@ -89,5 +92,4 @@ if __name__ == '__main__':
 
     while True:
         message,client_address = serverSocket.recvfrom(2048)
-        print (message)
         process_full_message(message, client_address, user_database, user_names_database)
