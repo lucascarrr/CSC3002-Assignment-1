@@ -66,22 +66,33 @@ class gui:
         self.login_box.place(relheight=0.3, relwidth=0.5, rely=0.35, relx=0.37)
         self.login_box.focus()
         self.login_box.bind("<Return>", self.password_on_enter) 
+        
 
     # Function to set up password incorrect pop up message upon a user entering an incorrect password should the username entered already exist.    
     def setup_password_popup(self):
         self.window = Tk()
         self.window.title("Login")
         self.window.resizable(width=False, height=False)
-        self.window.configure(width=450, height = 100, bg="#EEF4ED")
+        self.window.configure(width=450, height = 150, bg="#EEF4ED")
         self.window.eval('tk::PlaceWindow . center')
 
         #login field
         message_label = Label(self.window, fg="#13315C", bg="#EEF4ED", text = "INCORRECT PASSWORD FOR USERNAME \n PRESS ENTER TO TRY AGAIN.", font=font)
         message_label.place(rely=0.3, relx=0.12)
-
+        
+        
+        
+        self.button = Button(self.window,
+                         text = "Try Again",
+                         font = font,
+                         command = lambda: self.setup_password_window())
+        self.button.place(relx = 0.35,
+                      rely = 0.7)
+        
         self.window.mainloop()
-        message_label.bind("<Return>", self.setup_password_window) #this self.login xyz calls func to save username and call password window
+        #message_label.bind("<Return>", self.window.destroy()) #this self.login xyz calls func to save username and call password window
        #this is not working why :(((((((((
+        
 
     # Function to set up main chat window.
     def setup_main_window(self):
@@ -191,7 +202,6 @@ def save_password(username, password, login_status):
                 sent = True
             else:
                 gui.setup_password_popup()
-                print('password popup')
     if account_exist != True:
         create_account(username, password)
     
