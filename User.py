@@ -5,7 +5,8 @@ class User:
         self.port_no = port_no
         self.name = name.replace(" ", "")
 
-    def printDetails(self):
+    #for debugging mostly
+    def printDetails(self): 
         print (self.name, end=" from ")
         print (self.ip_address, end=":")
         print (self.port_no)
