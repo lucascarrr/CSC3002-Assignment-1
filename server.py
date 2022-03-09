@@ -4,15 +4,24 @@ from ipaddress import ip_address
 from posixpath import split
 from socket import *
 from User import *
-import chime
 
-#header = [0=hashed message, 1=message_time, 2=targets, 3=message_type]
-
+#server.py
+#This is the server class for the chat application. Each client will connect to this server
 def print_all_users():
     print ("Current users: ")
     for users in user_database:
         users.printDetails()
     print()
+
+#This function receives a message from a client. The string the function receives contains a header, as well as message body. This
+#function is responsible for decodig the message, differentiating between the header and the body, as well as performing the relevant
+#actions to the message. 
+#
+#Parameters: 
+#       String message: this is the full string the server receives from the client. 
+#       List details: this is the details of the client who sent the message to the server. Details[0] gives the IP_addres; details[1] gives the port number.
+#       List user_list: this is a list of users who are online on the client. The server cross checks the user_list with the target of the message, and finds
+#           correct details to enable message forwarding. 
 
 def process_full_message(message, details, user_list):
     decoded_message = decode_message(message)
@@ -62,28 +71,61 @@ def process_full_message(message, details, user_list):
             #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
                 serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
 
+#This function is responsible for performing the necessary tasks on a message body, in order to send it to a client. This involves creating and attaching a
+#message header - which is done by calling create_out_header(). The function returns a string which the server can send to a client. 
+#
+#Parameters: 
+#       String message: this is the message body. 
+#       String sender: this is the name of the sender of the message, details corresponding to the name can be found by 
+#           searching through user_list and calling .name for each element in the list. 
+#       String type: thhis is the type of message that is being sent - which tells the recipient what to do with the message. 
+
 def create_out_message(message, sender, type):
     message_header = create_out_header(sender, message, type)
     created_message = str(message_header) + " <-HEADER||MESSAGE-> " + message
     return (created_message)
+
+#This function creates a header for a message. It returns a list of the items in the header, which is then cast to a String by the create_out_message() function. 
+#
+#Parameters: 
+#       String sender: the name of the client who sent the message. 
+#       String content: the message body, which needs to be hashed and attached to the header. 
+#       String type: the type of message (JOIN, CHAT, BROADCAST etc)
 
 def create_out_header(sender, content, type):
     hashed_message = hashlib.sha256(content.encode('utf-8')).hexdigest()  
     sender = sender
     return [hashed_message, sender, type]
 
-#seperates the message content from the header
+#This function is used by the process_full_message() function. It takes a String received by the server (which contains the message header & the body), and splits
+#the string into the header and the message body. The function returns a list of the header and the body. 
+#
+#Parameters: 
+#       String message: the string received by the server (containing a header & message body)
+
 def decode_message(message):
     message = message.decode()
     split_message = str(message).split(" <-HEADER||MESSAGE-> ")
     return split_message
 
-#confirms that correct message was delivered to the server (check again on receiving message*)
+#This function is used to confirm that the body of a message received is the correct/full message. This is done by hashing the body of the message, and comparing it
+#to the hash provided in the header. If they are the same, then the message was delivered correctly. Returns True if they are the same, and False if they are not. 
+#
+#Parameters: 
+#       String hashed_string: this is the result of the message going through the hash function and then being passed through the hexidigest() function. 
+#       String unhashed_string: this is the message body, which is yet to be passed through a hash function. 
 def check_hashing(hashed_string, unhashed_string):
     x =  hashlib.sha256(unhashed_string.encode('utf-8')).hexdigest()  
     return (hashed_string == x)
 
-#creates a user and adds to the database
+#This function creates an object of User type and appends it to the user_list. The function checks to make sure that the username is unique, since duplicates
+#are not allowed. The function returns True if the user has been succesfully created and added, and False if the request was unsuccesfull. 
+#
+#Parameters: 
+#       String name: this is the name of the user. Must be unique. 
+#       String details: these are the IP_address and port number of the user. 
+#       List user_list: this is a list of current users connected to the server.
+
 def create_user(name, details, user_list):
     temp_user = User(str(details[0]), str(details[1]), name)
     print(len(user_list))
@@ -104,7 +146,7 @@ if __name__ == '__main__':
     message_database = []
     connections_counter = 0 
 
-    server_ip = '127.0.0.1'
+    server_ip = 
     server_port = 12000
     serverSocket=socket(AF_INET, SOCK_DGRAM)
     serverSocket.bind((server_ip, server_port))

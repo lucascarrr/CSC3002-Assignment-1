@@ -1,12 +1,9 @@
 from tkinter import *
 import hashlib
 import threading
-
 from socket import *
 from datetime import datetime
 from interface import *
-
-
 
 bg = "#203239"
 system_text = "#C1666B"
@@ -14,6 +11,7 @@ user_text = "#E0DDAA"
 font = "Helvetica 16 bold"
 font_bold = "Helvetica 14 bold"
 welcome_font = "Helvetica 14 bold"
+instructions_font = "Helvetica 14"
 
 class gui:
     is_logged_in = False
@@ -77,12 +75,12 @@ class gui:
         self.message_view.tag_config('received', foreground="#48cae4", font=welcome_font)
         self.message_view.tag_config('broadcast', foreground="#e9d8a6", font=welcome_font)
         self.message_view.tag_config('self', foreground="#fec5bb", font=welcome_font)
+        self.message_view.tag_config('instruction', foreground="#fae1dd", font=instructions_font)
 
         self.message_view.insert(END, self.welcome_message(), 'welcome')
 
 
     def print_to_Screen(self, message, tag):
-
         self.message_view.insert(END, message, tag)
         self.message_view.insert(END, "\n")
 
@@ -95,18 +93,27 @@ class gui:
     def on_enter_press(self, event):
         message = self.text_widget.get("1.0", 'end-1c')
         while ("\n" not in message and message != ""):
-            send_message(message, self.is_logged_in)
-            self.text_widget.delete("1.0", END)
-            return "break"
+            if (message == "/help"):
+                self.print_to_Screen(self.get_instructions(), 'instruction')
+                self.text_widget.delete("1.0", END)
+                return "break"
+            elif (message == "/exit"):
+                exit()
+            else:
+                send_message(message, self.is_logged_in)
+                self.text_widget.delete("1.0", END)
+                return "break"
 
-    def get_instructions():
-        help = "/help : to view these instructions again"
-        logout = "/exit"
-        directed_message = "@target : to send a directed message - can be multiple targets, e.g. @target 1 @target 2 message"
-        broadcast_message = "to send a message to everyone on the server, simply type the message and press enter"
+    def get_instructions(self):
+        help = "-> /help : to view these instructions again\n"
+        logout = "-> /exit to exit the program\n"
+        directed_message = "-> @target <message> : to send a directed message, can be multiple targets, \n      e.g. @target1 @target2 <message>\n"
+        broadcast_message = "-> to send a broadcast message, simply type the message and press enter\n"
+        return (help + logout + directed_message + broadcast_message)
+
     
     def welcome_message(self):
-        return ("Welcome to the chatroom.\nPlease type your username to log in.\n")
+        return ("Welcome to the chatroom.\nPlease type your username to log in.\n\n")
 
 def send_message(message, logged_in):
     if (gui.username == ""):
@@ -131,20 +138,28 @@ def recieve_messages(client_socket):
             gui.print_to_Screen(x, 'received')
         except:
             continue
-        #print(message.decode())
 
-# def log_in(username, login_status):
-#     sender = gui.username
-#     input_message = message_processing_out(gui.username, login_status, sender)
-#     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+#This function is used by the message_processing_in() function. It takes a String received by the server (which contains the message header & the body), and splits
+#the string into the header and the message body. The function returns a list of the header and the body. 
+#
+#Parameters: 
+#       String message: the string received by the server (containing a header & message body)
 
-#seperates the message content from the header
 def decode_message(message):
     message = message.decode()
     split_message = str(message).split(" <-HEADER||MESSAGE-> ")
     return split_message
 
-#processes message (adds a header and other information)
+#This function is responsible for performing the necessary actions on a message the user would like to send. The function figures out if the message is a direct
+#message, broadcast, login-request - and attaches the relevant information to the header. This is done by calling the create_message_header() function. 
+#
+#Parameters: 
+#       String raw_message: this is the input received from the user, it might look like "@someone here is my message", or just simply be text e.g. "my message". 
+#                           the function must work out what type of request it is by looking for keywords, or booleans (such as '@', or checking if the user has 
+#                           logged on already).
+#       boolean logged_in: a boolean which returns True if the client has already connected to the server, False otherwise. 
+#       String sender: a string containing the username of the client - the server uses this information. 
+
 def message_processing_out(raw_message, logged_in, sender):
     target_string = ""
     message_type = ""
@@ -183,6 +198,12 @@ def message_processing_out(raw_message, logged_in, sender):
     created_message = (str(message_header) + " <-HEADER||MESSAGE-> " + message_content)
     return created_message
 
+#This function is responsible for understanding/processing a message received from the server. The message from the server will have a header and a message body, 
+#the function will split this up and perform the relevant actions to handle the message request. 
+#
+#Parameters: 
+#       String raw_message: this is a string containing the message header and the message body. 
+
 def message_processing_in(raw_message):
     decoded_message = decode_message(raw_message)
     
@@ -198,6 +219,7 @@ def message_processing_in(raw_message):
     
     if (message_type_list[4] in header):
         gui.is_logged_in = True
+        gui.print_to_Screen(gui.get_instructions(), 'instruction')
         print ("done")
     elif (message_type_list[5] in header):
         gui.username=""
@@ -206,11 +228,24 @@ def message_processing_in(raw_message):
     if (check_hashing(hashed_message, message_content)):
         return sender + ": " + message_content
 
+#This function is used to confirm that the body of a message received is the correct/full message. This is done by hashing the body of the message, and comparing it
+#to the hash provided in the header. If they are the same, then the message was delivered correctly. Returns True if they are the same, and False if they are not. 
+#
+#Parameters: 
+#       String hashed_string: this is the result of the message going through the hash function and then being passed through the hexidigest() function. 
+#       String unhashed_string: this is the message body, which is yet to be passed through a hash function. 
+
 def check_hashing(hashed_string, unhashed_string):
     x =  hashlib.sha256(unhashed_string.encode('utf-8')).hexdigest()  
     return (hashed_string == x)
 
-#creates a header, given ceratain information
+#This function creates a header for a message. It returns a list of the items in the header, which is then cast to a String by the create_out_message() function. 
+#
+#Parameters: 
+#       String sender: the name of the client who sent the message. 
+#       String content: the message body, which needs to be hashed and attached to the header. 
+#       String type: the type of message (JOIN, CHAT, BROADCAST etc)
+
 def create_message_header(message, targets, type, sender):
     hashed_message = hashlib.sha256(message.encode('utf-8')).hexdigest()           #hashes the message content only
     message_time = datetime.now()
@@ -222,7 +257,7 @@ def create_message_header(message, targets, type, sender):
 
 if __name__=="__main__":
     #Server details
-    server_ip = '127.0.0.1'            
+    server_ip = socket.gethostname()          
     server_port = 12000
     client_socket=socket(AF_INET, SOCK_DGRAM)
  
