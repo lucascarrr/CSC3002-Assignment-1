@@ -4,6 +4,8 @@ from ipaddress import ip_address
 from posixpath import split
 from socket import *
 from User import *
+import chime
+
 #header = [0=hashed message, 1=message_time, 2=targets, 3=message_type]
 
 def print_all_users():
@@ -96,7 +98,6 @@ def create_user(name, details, user_list):
     user_list.append(temp_user)
     print (temp_user.name + " user added")
     return True
-
 
 if __name__ == '__main__':
     user_database = []

@@ -1,15 +1,19 @@
 from tkinter import *
 import hashlib
 import threading
+
 from socket import *
 from datetime import datetime
 from interface import *
 
-bg = "#EEF4ED"
+
+
+bg = "#203239"
 system_text = "#C1666B"
-user_text = "#4357AD"
+user_text = "#E0DDAA"
 font = "Helvetica 16 bold"
-font_bold = "Helvertica 14 bold"
+font_bold = "Helvetica 14 bold"
+welcome_font = "Helvetica 14 bold"
 
 class gui:
     is_logged_in = False
@@ -26,11 +30,11 @@ class gui:
     def setup_login_window(self):
         self.window.title("Login")
         self.window.resizable(width=False, height=False)
-        self.window.configure(width=300, height = 100, bg="#EEF4ED")
+        self.window.configure(width=300, height = 100, bg="#203239")
         self.window.eval('tk::PlaceWindow . center')
 
         #login field
-        login_label = Label(self.window, fg="#13315C", bg="#EEF4ED", text = "USERNAME:", font=font)
+        login_label = Label(self.window, fg="#E0DDAA", bg="203239", text = "USERNAME:", font=font)
         login_label.place(relheight=0.4, relwidth=0.4, rely=0.3, relx=0)
         self.login_box = Text(self.window, width=1, height= 1, highlightthickness = 0, borderwidth=0,
                                     bg="#8DA9C4", fg="#0B2545", font=font,
@@ -39,14 +43,13 @@ class gui:
         self.login_box.focus()
         self.login_box.bind("<Return>", self.login_on_enter)
 
-
     def setup_main_window(self):
         self.window.title("Chatroom")
         self.window.resizable(width=False, height=False)
-        self.window.configure(width=800, height=1200, bg=bg)
+        self.window.configure(width=600, height=800, bg="#141E27")
         self.window.eval('tk::PlaceWindow . center')
 
-        head_label = Label(self.window, bg=bg, fg=system_text,
+        head_label = Label(self.window, bg="#203239", fg="#E0DDAA",
                                     text="Welcome to the chat",
                                     font=font_bold, pady=10)
         head_label.place(relwidth=1)
@@ -56,7 +59,8 @@ class gui:
         self.send_label.place(relheight=0.825, relwidth=0.2, rely=0.9, relx=0.8)
 
         #text add widget
-        self.text_widget = Text(self.window, width=30, height=2, highlightthickness = 0, borderwidth=0, relief="raised", bg="#8DA9C4", fg="#EEF4ED", font=font, padx=5, pady=5)
+        self.text_widget = Text(self.window, width=30, height=2, highlightthickness = 0, borderwidth=0, 
+                            relief="raised", bg="#141E27", fg=user_text, font=font, padx=5, pady=5)
         self.text_widget.place(relheight=0.825, relwidth=0.8, rely=0.9)
         self.text_widget.configure(cursor="xterm")
         self.text_widget.focus()
@@ -64,12 +68,22 @@ class gui:
     
         #text read widget
         self.message_view = Text(self.window, width=30, height=2, highlightthickness = 0, borderwidth=0, relief="raised",
-                                    bg="#EEF4ED", fg="#134074", font=font,
+                                    bg=bg, fg=user_text, font=font,
                                     padx=5, pady=5)
         self.message_view.place(relheight=0.9, relwidth=1, rely=0)
+  
 
-    def print_to_Screen(self, message):
-        self.message_view.insert(END, message)
+        self.message_view.tag_config('welcome', foreground="#94d2bd", font=welcome_font)
+        self.message_view.tag_config('received', foreground="#48cae4", font=welcome_font)
+        self.message_view.tag_config('broadcast', foreground="#e9d8a6", font=welcome_font)
+        self.message_view.tag_config('self', foreground="#fec5bb", font=welcome_font)
+
+        self.message_view.insert(END, self.welcome_message(), 'welcome')
+
+
+    def print_to_Screen(self, message, tag):
+
+        self.message_view.insert(END, message, tag)
         self.message_view.insert(END, "\n")
 
     # def login_on_enter(self, event):
@@ -84,7 +98,16 @@ class gui:
             send_message(message, self.is_logged_in)
             self.text_widget.delete("1.0", END)
             return "break"
-  
+
+    def get_instructions():
+        help = "/help : to view these instructions again"
+        logout = "/exit"
+        directed_message = "@target : to send a directed message - can be multiple targets, e.g. @target 1 @target 2 message"
+        broadcast_message = "to send a message to everyone on the server, simply type the message and press enter"
+    
+    def welcome_message(self):
+        return ("Welcome to the chatroom.\nPlease type your username to log in.\n")
+
 def send_message(message, logged_in):
     if (gui.username == ""):
         sender = message
@@ -93,9 +116,9 @@ def send_message(message, logged_in):
     if ("@" in message):
         a = message.split(" ")
         b = len(a[0])
-        gui.print_to_Screen("You: " + message[b:])
+        gui.print_to_Screen("You: " + message[b:], 'self')
     elif (gui.is_logged_in):
-        gui.print_to_Screen("You (broadcast): " + message)
+        gui.print_to_Screen("You (broadcast): " + message, 'broadcast')
 
     input_message = message_processing_out(message, logged_in, sender)
     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
@@ -105,7 +128,7 @@ def recieve_messages(client_socket):
         message, server_address = client_socket.recvfrom(2048)
         x = message_processing_in(message)
         try: 
-            gui.print_to_Screen(x)
+            gui.print_to_Screen(x, 'received')
         except:
             continue
         #print(message.decode())
@@ -183,7 +206,6 @@ def message_processing_in(raw_message):
     if (check_hashing(hashed_message, message_content)):
         return sender + ": " + message_content
 
-
 def check_hashing(hashed_string, unhashed_string):
     x =  hashlib.sha256(unhashed_string.encode('utf-8')).hexdigest()  
     return (hashed_string == x)
@@ -213,20 +235,9 @@ if __name__=="__main__":
     outbox = []
     inbox = []       
 
-
-
-    # input_message = message_processing("lucas", logged_in, sender)
-    # client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
-    # logged_in = True
-
     for i in range(1):
         rec = threading.Thread(target=recieve_messages, args=(client_socket, ))
         rec.start()
 
     gui = gui()
     gui.run()
-
-
-    # message = input()
-    # input_message = message_processing(message, logged_in, input_name)
-    # client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
