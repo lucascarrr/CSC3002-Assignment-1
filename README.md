@@ -12,7 +12,9 @@
 - open a terminal and cd into the project directory 
 - run the 'server.py' file
 - for each user you would like to add to the chat: open another terminal and run the 'interface.py' file
+- 
 Doing the above will run the server on your localhost IP_address ('127.0.0.1'). If you wish to run the program using your own IP_address:
+
 - open a terminal and cd into the project directory
 - run the 'server.py' file with the desired IP_address as an argument, e.g. **_python3 server.py 192.168.0.17_**
 - for each user you would like to add to the chat: open another terminal and run the 'interface.py' file with the same argument as you ran the server,
