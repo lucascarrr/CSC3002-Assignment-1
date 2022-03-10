@@ -124,7 +124,7 @@ def send_message(message, logged_in):
     try:
         client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
     except:
-        gui.print_to_Screen("Message Delivery failed", 'error')
+        gui.print_to_Screen("Packets were lost, try send message again", 'error')
 
 #This function is responsible for getting messages from the server; when the method is called, a continous loop listens for messages.
 #The message is then put through the 'message_processing_in()' function, and then displayed on the gui. 
@@ -226,7 +226,7 @@ def message_processing_in(raw_message):
         gui.username=""
         gui.is_logged_in = False
     elif (message_type_list[6] in header):
-        gui.print_to_Screen("Message not sent, try again", 'welcome')
+        gui.print_to_Screen("Packets were lost, try send message again", 'error')
         return
 
     if (check_hashing(hashed_message, message_content)):
