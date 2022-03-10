@@ -78,6 +78,7 @@ class gui:
         self.message_view.tag_config('instruction', foreground="#fae1dd", font=instructions_font)
 
         self.message_view.insert(END, self.welcome_message(), 'welcome')
+        self.print_to_Screen(self.get_instructions(), 'instruction')
 
 
     def print_to_Screen(self, message, tag):
@@ -129,6 +130,12 @@ def send_message(message, logged_in):
 
     input_message = message_processing_out(message, logged_in, sender)
     client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+
+#This function is responsible for getting messages from the server; when the method is called, a continous loop listens for messages.
+#The message is then put through the 'message_processing_in()' function, and then displayed on the gui. 
+#
+#Parameters: 
+#       socket client_socket: this is the socket for the client, which receives messages from the server
 
 def recieve_messages(client_socket):
     while True:
@@ -219,7 +226,6 @@ def message_processing_in(raw_message):
     
     if (message_type_list[4] in header):
         gui.is_logged_in = True
-        gui.print_to_Screen(gui.get_instructions(), 'instruction')
         print ("done")
     elif (message_type_list[5] in header):
         gui.username=""
@@ -257,18 +263,11 @@ def create_message_header(message, targets, type, sender):
 
 if __name__=="__main__":
     #Server details
-    server_ip = socket.gethostname()          
+    server_ip = '127.0.0.1' 
     server_port = 12000
     client_socket=socket(AF_INET, SOCK_DGRAM)
  
-    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "CONFIRMATION", "REJECTION"]
-
-    #Message input/output handling
-    input_message = ""
-    logged_in = False
-    sent = []
-    outbox = []
-    inbox = []       
+    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "CONFIRMATION", "REJECTION"]      
 
     for i in range(1):
         rec = threading.Thread(target=recieve_messages, args=(client_socket, ))

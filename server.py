@@ -146,7 +146,7 @@ if __name__ == '__main__':
     message_database = []
     connections_counter = 0 
 
-    server_ip = 
+    server_ip = '127.0.0.1'
     server_port = 12000
     serverSocket=socket(AF_INET, SOCK_DGRAM)
     serverSocket.bind((server_ip, server_port))
