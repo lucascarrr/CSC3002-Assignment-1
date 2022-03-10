@@ -4,6 +4,7 @@ import threading
 from socket import *
 from datetime import datetime
 from interface import *
+import sys
 
 bg = "#203239"
 system_text = "#C1666B"
@@ -261,7 +262,10 @@ def create_message_header(message, targets, type, sender):
 
 if __name__=="__main__":
     #Server details
-    server_ip = '127.0.0.1' 
+    if (len(sys.argv) > 1):
+        server_ip = sys.argv[1]
+    else:
+        server_ip = '127.0.0.1'
     server_port = 12000
     client_socket=socket(AF_INET, SOCK_DGRAM)
  
