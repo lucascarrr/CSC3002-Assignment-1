@@ -69,27 +69,20 @@ class gui:
                                     bg=bg, fg=user_text, font=font,
                                     padx=5, pady=5)
         self.message_view.place(relheight=0.9, relwidth=1, rely=0)
-  
 
         self.message_view.tag_config('welcome', foreground="#94d2bd", font=welcome_font)
         self.message_view.tag_config('received', foreground="#48cae4", font=welcome_font)
         self.message_view.tag_config('broadcast', foreground="#e9d8a6", font=welcome_font)
         self.message_view.tag_config('self', foreground="#fec5bb", font=welcome_font)
         self.message_view.tag_config('instruction', foreground="#fae1dd", font=instructions_font)
+        self.message_view.tag_config('error', foreground="#ae2012", font=instructions_font)
 
         self.message_view.insert(END, self.welcome_message(), 'welcome')
         self.print_to_Screen(self.get_instructions(), 'instruction')
 
-
     def print_to_Screen(self, message, tag):
         self.message_view.insert(END, message, tag)
         self.message_view.insert(END, "\n")
-
-    # def login_on_enter(self, event):
-    #     login_username = self.login_box.get("1.0", 'end-1c')
-    #     log_in(login_username, self.is_logged_in)
-    #     self.login_box.delete("1.0", END)
-    #     return "break"
 
     def on_enter_press(self, event):
         message = self.text_widget.get("1.0", 'end-1c')
@@ -112,7 +105,6 @@ class gui:
         broadcast_message = "-> to send a broadcast message, simply type the message and press enter\n"
         return (help + logout + directed_message + broadcast_message)
 
-    
     def welcome_message(self):
         return ("Welcome to the chatroom.\nPlease type your username to log in.\n\n")
 
@@ -129,7 +121,10 @@ def send_message(message, logged_in):
         gui.print_to_Screen("You (broadcast): " + message, 'broadcast')
 
     input_message = message_processing_out(message, logged_in, sender)
-    client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+    try:
+        client_socket.sendto(input_message.encode('utf-8'), (server_ip, server_port))
+    except:
+        gui.print_to_Screen("Message Delivery failed", 'error')
 
 #This function is responsible for getting messages from the server; when the method is called, a continous loop listens for messages.
 #The message is then put through the 'message_processing_in()' function, and then displayed on the gui. 
@@ -230,6 +225,9 @@ def message_processing_in(raw_message):
     elif (message_type_list[5] in header):
         gui.username=""
         gui.is_logged_in = False
+    elif (message_type_list[6] in header):
+        gui.print_to_Screen("Message not sent, try again", 'welcome')
+        return
 
     if (check_hashing(hashed_message, message_content)):
         return sender + ": " + message_content
@@ -267,7 +265,7 @@ if __name__=="__main__":
     server_port = 12000
     client_socket=socket(AF_INET, SOCK_DGRAM)
  
-    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "CONFIRMATION", "REJECTION"]      
+    message_type_list = ["CHAT", "BROADCAST", "JOIN", "LEAVE", "CONFIRMATION", "REJECTION", "CORRUPTED"]      
 
     for i in range(1):
         rec = threading.Thread(target=recieve_messages, args=(client_socket, ))

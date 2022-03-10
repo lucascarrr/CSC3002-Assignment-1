@@ -42,35 +42,39 @@ def process_full_message(message, details, user_list):
     time = header[1]
     sender = header[4]
     # print (header[4])
-    
-    #handling message types
-    if (message_type == "JOIN"):
-        user_created = create_user(message_content, details, user_list)
 
-        if not user_created:
-            out_message = create_out_message("Username in use. Try again", "[Server]", "REJECTION")
-            serverSocket.sendto(bytes(out_message.encode('utf-8')), (details[0], int(details[1])))
-        else:
-            temp = sender + " has joined the server"
-            out_message = create_out_message(temp, "[server]", "CONFIRMATION")
-            for user in user_list:
-                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
-            
+    if hashed_confirmation:
+        #handling message types
+        if (message_type == "JOIN"):
+            user_created = create_user(message_content, details, user_list)
+
+            if not user_created:
+                out_message = create_out_message("Username in use. Try again", "[Server]", "REJECTION")
+                serverSocket.sendto(bytes(out_message.encode('utf-8')), (details[0], int(details[1])))
+            else:
+                temp = sender + " has joined the server"
+                out_message = create_out_message(temp, "[server]", "CONFIRMATION")
+                for user in user_list:
+                    serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
+                
         #insert outmessage here
-    elif (message_type == "CHAT"):
-        out_message = create_out_message(message_content, sender, "CHAT")
-        for user in user_list:
-            if (user.name in targets):
-                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
+        elif (message_type == "CHAT"):
+            out_message = create_out_message(message_content, sender, "CHAT")
+            for user in user_list:
+                if (user.name in targets):
+                    serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
+                    #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
+
+        elif (message_type == "BROADCAST"):
+            out_message = create_out_message(message_content, (sender + "( broadcast )"), "BROADCAST")
+            for user in user_list:
+                if (user.name != sender):
                 #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
-
-    elif (message_type == "BROADCAST"):
-        out_message = create_out_message(message_content, (sender + "( broadcast )"), "BROADCAST")
-        for user in user_list:
-            if (user.name != sender):
-            #  serverSocket.sendto(bytes((sender + ": " + message_content).encode('utf-8')), (user.ip_address, int(user.port_no)))
-                serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
-
+                    serverSocket.sendto(bytes(out_message.encode('utf-8')), (user.ip_address, int(user.port_no)))
+    else:
+        error_message = create_out_message("Packets were lost, try send message again", "[Server]", "CORRUPTED")
+        serverSocket.sendto(bytes(error_message.encode('utf-8')), (details[0], int(details[1])))
+    
 #This function is responsible for performing the necessary tasks on a message body, in order to send it to a client. This involves creating and attaching a
 #message header - which is done by calling create_out_header(). The function returns a string which the server can send to a client. 
 #
