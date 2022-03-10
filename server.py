@@ -4,6 +4,7 @@ from ipaddress import ip_address
 from posixpath import split
 from socket import *
 from User import *
+import sys
 
 #server.py
 #This is the server class for the chat application. Each client will connect to this server
@@ -147,10 +148,8 @@ def create_user(name, details, user_list):
 
 if __name__ == '__main__':
     user_database = []
-    message_database = []
-    connections_counter = 0 
 
-    server_ip = '127.0.0.1'
+    server_ip = sys.argv[1]
     server_port = 12000
     serverSocket=socket(AF_INET, SOCK_DGRAM)
     serverSocket.bind((server_ip, server_port))
